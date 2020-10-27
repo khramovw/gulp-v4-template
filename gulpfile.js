@@ -25,24 +25,30 @@ const path = {
     baseDir: `./${project_folder}/`,
     clean: `./${project_folder}/`
 }
-
-let _gulp = require('gulp');
-let {src, dest} = _gulp;
-let _browsersync = require('browser-sync').create();
-let _fileinclude = require('gulp-file-include');
-let _del = require('del');
-let _sass = require('gulp-sass');
-let _autoprefixer = require('gulp-autoprefixer');
-let _group_css_media = require('gulp-group-css-media-queries');
-let _clean_css = require('gulp-clean-css');
-let _babel = require("gulp-babel");
-let _uglify = require('gulp-uglify-es').default;
-let _rename = require('gulp-rename');
+let {production, development} = require('gulp-mode')({
+    modes: ["production", "development"],
+    default: "development",
+    verbose: false
+});
+let gulp = require('gulp');
+let {src, dest, parallel, series, watch} = gulp;
+let browsersync = require('browser-sync').create();
+let fileinclude = require('gulp-file-include');
+let del = require('del');
+let sass = require('gulp-sass');
+let autoprefixer = require('gulp-autoprefixer');
+let group_css_media = require('gulp-group-css-media-queries');
+let clean_css = require('gulp-clean-css');
+let babel = require("gulp-babel");
+let uglify = require('gulp-uglify-es').default;
+let rename = require('gulp-rename');
 
 function browserSync() {
-    _browsersync.init({
+    browsersync.init({
         server: {
-            baseDir: path.baseDir
+            baseDir: path.baseDir,
+            notify: false,
+            online: true
         },
         port: 3000,
         notify: true,
@@ -51,70 +57,71 @@ function browserSync() {
 
 function html() {
     return src(path.src.html)
-        .pipe(_fileinclude({
+        .pipe(fileinclude({
             prefix: '~',
             basepath: '@file'
         }))
         .pipe(dest(path.build.html))
-        .pipe(_browsersync.stream());
+        .pipe(browsersync.stream());
 }
 
 function css() {
     return src(path.src.css)
-        .pipe(_sass({
+        .pipe(sass({
             outputStyle: 'expanded'
         }))
-        .pipe(_group_css_media())
-        .pipe(_autoprefixer({
+        .pipe(group_css_media())
+        .pipe(autoprefixer({
             overrideBrowserslist: ['last 2 version', '>1%'],
+            grid: true,
             cascade: true,
             comments: true
         }))
         .pipe(dest(path.build.css))
-        .pipe(_clean_css())
-        .pipe(_rename({
+        .pipe(production(clean_css()))
+        .pipe(rename({
             extname: '.min.css'
         }))
         .pipe(dest(path.build.css))
-        .pipe(_browsersync.stream());
+        .pipe(browsersync.stream());
 }
 
 function js() {
     return src(path.src.js)
-        .pipe(_fileinclude({
+        .pipe(fileinclude({
             prefix: '~',
             basepath: '@file'
         }))
-        .pipe(_babel({
+        .pipe(babel({
             presets: ["@babel/preset-env"]
         }))
         .pipe(dest(path.build.js))
-        .pipe(_rename({
+        .pipe(production(rename({
             extname: '.min.js'
-        }))
-        .pipe(_uglify())
-        .pipe(dest(path.build.js))
-        .pipe(_browsersync.stream());
+        })))
+        .pipe(production(uglify()))
+        .pipe(production(dest(path.build.js)))
+        .pipe(browsersync.stream());
 }
 
-function watchFiles(params) {
-    _gulp.watch([path.watch.html], html)
-    _gulp.watch([path.watch.css], css)
-    _gulp.watch([path.watch.js], js)
+function watchFiles() {
+    watch([path.watch.html], html)
+    watch([path.watch.css], css)
+    watch([path.watch.js], js)
 }
 
 function clean() {
-    return _del(path.clean);
+    return del(path.clean);
 }
 
-let build = _gulp.series(clean, _gulp.parallel(js, css, html));
-let watch = _gulp.parallel(build, watchFiles, browserSync);
+let build = series(clean, parallel(js, css, html));
+let watchP = parallel(build, watchFiles, browserSync);
 
 exports.js = js;
 exports.css = css;
 exports.html = html;
 
 exports.build = build;
-exports.watch = watch;
+exports.watchP = watchP;
 
-exports.default = watch;
+exports.default = watchP;
