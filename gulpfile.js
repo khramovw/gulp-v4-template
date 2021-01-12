@@ -57,19 +57,14 @@ function browserSync() {
 
 function html() {
     return src(path.src.html)
-        .pipe(fileinclude({
-            prefix: '~',
-            basepath: '@file'
-        }))
+        .pipe(fileinclude({prefix: '~', basepath: '@file'}))
         .pipe(dest(path.build.html))
         .pipe(browsersync.stream());
 }
 
 function css() {
     return src(path.src.css)
-        .pipe(sass({
-            outputStyle: 'expanded'
-        }))
+        .pipe(sass({outputStyle: 'expanded'}))
         .pipe(group_css_media())
         .pipe(autoprefixer({
             overrideBrowserslist: ['last 2 version', '>1%'],
@@ -79,26 +74,17 @@ function css() {
         }))
         .pipe(dest(path.build.css))
         .pipe(production(clean_css()))
-        .pipe(rename({
-            extname: '.min.css'
-        }))
+        .pipe(rename({extname: '.min.css'}))
         .pipe(dest(path.build.css))
         .pipe(browsersync.stream());
 }
 
 function js() {
     return src(path.src.js)
-        .pipe(fileinclude({
-            prefix: '~',
-            basepath: '@file'
-        }))
-        .pipe(babel({
-            presets: ["@babel/preset-env"]
-        }))
+        .pipe(fileinclude({prefix: '~', basepath: '@file'}))
+        .pipe(babel({presets: ["@babel/preset-env"]}))
         .pipe(dest(path.build.js))
-        .pipe(production(rename({
-            extname: '.min.js'
-        })))
+        .pipe(production(rename({extname: '.min.js'})))
         .pipe(production(uglify()))
         .pipe(production(dest(path.build.js)))
         .pipe(browsersync.stream());
